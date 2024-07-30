@@ -91,32 +91,212 @@ uint64_t move_up(uint64_t actual_state) {
 }
 
 uint64_t move_down (uint64_t actual_state) {
+  for (int j=0;j<4;j++) {
+    // pointer to the last tile that was not merged
+    int last = 3;
+    
+    for (int i=2;i>=0;i--) {
+      uint64_t value_at_pos = ((actual_state >> (16 * i + 4 * j)) & 0xFUL);
+      uint64_t value_at_last = ((actual_state >> (16 * last + 4 * j)) & 0xFUL);
 
+      if (value_at_pos) {
+
+        // set the value at the current position to zero
+        actual_state = actual_state ^ (value_at_pos << (16 * i + 4 * j));
+
+        if (value_at_last) {
+          if (value_at_last == value_at_pos) {
+            // increase the value at last by one
+            actual_state = actual_state + (1UL << (16 * last + 4 * j));
+            last--;
+          }
+
+          else {
+            // new pointer to an unmerged tile is found
+            last--;
+
+            // set the value at position "last" to the value at the current position
+            actual_state = actual_state ^ (value_at_pos << (16 * last + 4 * j));
+          }
+        }
+
+        else {
+          // set the value at position "last" to the value at the current position
+          actual_state = actual_state ^ (value_at_pos << (16 * last + 4 * j));
+        }
+      }
+    }
+  }
+
+  return actual_state;
 }
 
 uint64_t move_right (uint64_t actual_state) {
+  for (int i=0;i<4;i++) {
+    // pointer to the last tile that was not merged
+    int last = 3;
+    
+    for (int j=2;j>=0;j--) {
+      uint64_t value_at_pos = ((actual_state >> (16 * i + 4 * j)) & 0xFUL);
+      uint64_t value_at_last = ((actual_state >> (16 * i + 4 * last)) & 0xFUL);
 
+      if (value_at_pos) {
+
+        // set the value at the current position to zero
+        actual_state = actual_state ^ (value_at_pos << (16 * i + 4 * j));
+
+        if (value_at_last) {
+          if (value_at_last == value_at_pos) {
+            // increase the value at last by one
+            actual_state = actual_state + (1UL << (16 * i + 4 * last));
+            last--;
+          }
+
+          else {
+            // new pointer to an unmerged tile is found
+            last--;
+
+            // set the value at position "last" to the value at the current position
+            actual_state = actual_state ^ (value_at_pos << (16 * i + 4 * last));
+          }
+        }
+
+        else {
+          // set the value at position "last" to the value at the current position
+          actual_state = actual_state ^ (value_at_pos << (16 * i + 4 * last));
+        }
+      }
+    }
+  }
+
+  return actual_state;
 }
 
 
 uint64_t move_left (uint64_t actual_state) {
+  for (int i=0;i<4;i++) {
+    // pointer to the last tile that was not merged
+    int last = 0;
+    
+    for (int j=1;j<4;j++) {
+      uint64_t value_at_pos = ((actual_state >> (16 * i + 4 * j)) & 0xFUL);
+      uint64_t value_at_last = ((actual_state >> (16 * i + 4 * last)) & 0xFUL);
 
+      if (value_at_pos) {
+
+        // set the value at the current position to zero
+        actual_state = actual_state ^ (value_at_pos << (16 * i + 4 * j));
+
+        if (value_at_last) {
+          if (value_at_last == value_at_pos) {
+            // increase the value at last by one
+            actual_state = actual_state + (1UL << (16 * i + 4 * last));
+            last++;
+          }
+
+          else {
+            // new pointer to an unmerged tile is found
+            last++;
+
+            // set the value at position "last" to the value at the current position
+            actual_state = actual_state ^ (value_at_pos << (16 * i + 4 * last));
+          }
+        }
+
+        else {
+          // set the value at position "last" to the value at the current position
+          actual_state = actual_state ^ (value_at_pos << (16 * i + 4 * last));
+        }
+      }
+    }
+  }
+
+  return actual_state;
 }
 
-uint64_t add_tile_at_rand_position (uint64_t actual_state, int value_of_tile) {
+uint64_t add_tile_at_rand_position (uint64_t actual_state, uint64_t value_of_tile, std::mt19937 &rng) {
+  // first count the number of empty slots
+  int counter = 0;
+  for (int i=0;i<16;i++) {
+    if (((actual_state >> (4*i)) & 0xF) == 0) counter++;
+  }
 
+  if (counter == 0) return actual_state;
+
+  // now add a new tile to a random position
+  int position_to_be_added = std::uniform_int_distribution<int>(1, counter)(rng);
+  counter = 0;
+  
+  for (int i=0;i<16;i++) {
+    if (((actual_state >> (4*i)) & 0xF) == 0) counter++;
+
+    if (counter == position_to_be_added) {
+      return actual_state ^ (value_of_tile << (4*i));
+    }
+  }
+}
+
+uint64_t set_up_board(std::mt19937 &rng) {
+  // set up a new board such that there are two tiles with
+  // the value "2" at two random positions (not necessarily distinct)
+
+  int pos1 = std::uniform_int_distribution<int>(0, 15)(rng);
+  int pos2 = std::uniform_int_distribution<int>(0, 15)(rng);
+
+  return ((1UL << pos1) | (1UL << pos2));
 }
 
 uint64_t simulator_version_1 (std::vector<int> &sequence_of_moves) {
+  std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
+  uint64_t new_board = set_up_board(rng);
+  uint64_t prev;
+  for (int &x : sequence_of_moves) {
+    prev = new_board;
 
+    if (x == 0) new_board = move_up(new_board);
+    else if (x == 1) new_board = move_right(new_board);
+    else if (x == 2) new_board = move_down(new_board);
+    else new_board = move_left(new_board);
+
+    // if the move didn't change the state of the board then don't add a tile
+    if (new_board != prev) {
+      new_board = add_tile_at_rand_position(new_board, 2, rng);
+    }
+  }
+
+  return new_board;
 }
 
 uint64_t simulator_version_2 (std::vector<int> &sequence_of_moves) {
+  std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
+  uint64_t new_board = set_up_board(rng);
+  uint64_t prev;
 
+  for (int &x : sequence_of_moves) {
+    prev = new_board;
+
+    if (x == 0) new_board = move_up(new_board);
+    else if (x == 1) new_board = move_right(new_board);
+    else if (x == 2) new_board = move_down(new_board);
+    else new_board = move_left(new_board);
+
+    // if the move didn't change the state of the board then don't add a tile
+    if (new_board != prev) {
+      if (std::uniform_int_distribution<int>(0, 9)(rng) == 0) {
+        new_board = add_tile_at_rand_position(new_board, 4, rng);
+      }
+
+      else {
+        new_board = add_tile_at_rand_position(new_board, 2, rng);
+      }
+    }
+  }
+
+  return new_board;
 }
 
 signed main() {
-  // testing the function
+  // testing the functions
   std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
   uint64_t start = 0;
   std::vector<int> tm = {
@@ -133,7 +313,19 @@ signed main() {
   
   print_board(start);
 
-  start = move_up(start);
+  start = move_left(start);
 
+  print_board(start);
+
+  start = move_down(start);
+  print_board(start);
+
+  start = move_up(start);
+  print_board(start);
+
+  start = move_right(start);
+  print_board(start);
+
+  start = move_down(start);
   print_board(start);
 }
