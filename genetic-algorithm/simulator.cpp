@@ -35,10 +35,6 @@ Version 2: In this version, tiles pop up in tandom positions of the board.
 Its value is 2 with a probability of 90%, and 4 with a probability of 10%.
 */
 
-
-const uint64_t FULL = 18446744073709551615UL; // a number where all 64 bits are set
-
-
 void print_board(const uint64_t board) {
   for (int i=0;i<4;i++) {
     for (int j=0;j<4;j++) {
@@ -87,6 +83,9 @@ uint64_t move_up(uint64_t actual_state) {
     }
   }
 
+  // std::cout << "moved up\n";
+  // print_board(actual_state);
+
   return actual_state;
 }
 
@@ -128,6 +127,9 @@ uint64_t move_down (uint64_t actual_state) {
     }
   }
 
+  // std::cout << "moved down\n";
+  // print_board(actual_state);
+
   return actual_state;
 }
 
@@ -168,6 +170,9 @@ uint64_t move_right (uint64_t actual_state) {
       }
     }
   }
+
+  // std::cout << "moved right\n";
+  // print_board(actual_state);
 
   return actual_state;
 }
@@ -211,6 +216,9 @@ uint64_t move_left (uint64_t actual_state) {
     }
   }
 
+  // std::cout << "moved left\n";
+  // print_board(actual_state);
+
   return actual_state;
 }
 
@@ -221,6 +229,7 @@ uint64_t add_tile_at_rand_position (uint64_t actual_state, uint64_t value_of_til
     if (((actual_state >> (4*i)) & 0xF) == 0) counter++;
   }
 
+  // if there are no empty slots then it's not possible to add a new tile, so just exit
   if (counter == 0) return actual_state;
 
   // now add a new tile to a random position
@@ -234,6 +243,9 @@ uint64_t add_tile_at_rand_position (uint64_t actual_state, uint64_t value_of_til
       return actual_state ^ (value_of_tile << (4*i));
     }
   }
+
+  // never gets reached
+  return 0;
 }
 
 uint64_t set_up_board(std::mt19937 &rng) {
@@ -243,13 +255,17 @@ uint64_t set_up_board(std::mt19937 &rng) {
   int pos1 = std::uniform_int_distribution<int>(0, 15)(rng);
   int pos2 = std::uniform_int_distribution<int>(0, 15)(rng);
 
-  return ((1UL << pos1) | (1UL << pos2));
+  return ((1UL << (4*pos1)) | (1UL << (4*pos2)));
 }
 
 uint64_t simulator_version_1 (std::vector<int> &sequence_of_moves) {
   std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
   uint64_t new_board = set_up_board(rng);
   uint64_t prev;
+
+  // std::cout << "initial state of the board\n";
+  // print_board(new_board);
+
   for (int &x : sequence_of_moves) {
     prev = new_board;
 
@@ -260,7 +276,10 @@ uint64_t simulator_version_1 (std::vector<int> &sequence_of_moves) {
 
     // if the move didn't change the state of the board then don't add a tile
     if (new_board != prev) {
-      new_board = add_tile_at_rand_position(new_board, 2, rng);
+      new_board = add_tile_at_rand_position(new_board, 1, rng);
+
+      // std::cout << "added tile\n";
+      // print_board(new_board);
     }
   }
 
@@ -283,11 +302,11 @@ uint64_t simulator_version_2 (std::vector<int> &sequence_of_moves) {
     // if the move didn't change the state of the board then don't add a tile
     if (new_board != prev) {
       if (std::uniform_int_distribution<int>(0, 9)(rng) == 0) {
-        new_board = add_tile_at_rand_position(new_board, 4, rng);
+        new_board = add_tile_at_rand_position(new_board, 2, rng);
       }
 
       else {
-        new_board = add_tile_at_rand_position(new_board, 2, rng);
+        new_board = add_tile_at_rand_position(new_board, 1, rng);
       }
     }
   }
@@ -296,36 +315,11 @@ uint64_t simulator_version_2 (std::vector<int> &sequence_of_moves) {
 }
 
 signed main() {
-  // testing the functions
   std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
-  uint64_t start = 0;
-  std::vector<int> tm = {
-    1, 1, 0, 0,
-    0, 0, 0, 0,
-    1, 2, 0, 0,
-    1, 2, 0, 0,
-  };
-  for (int i=0;i<16;i++) {
-    // uint64_t f = std::uniform_int_distribution<int>(0, 15)(rng);
-    uint64_t f = tm[i];
-    start |= (f << (4*i));
+  std::vector<int> moves;
+  for (int i=0;i<20;i++) {
+    moves.push_back(std::uniform_int_distribution<int>(0, 3)(rng));
   }
-  
-  print_board(start);
 
-  start = move_left(start);
-
-  print_board(start);
-
-  start = move_down(start);
-  print_board(start);
-
-  start = move_up(start);
-  print_board(start);
-
-  start = move_right(start);
-  print_board(start);
-
-  start = move_down(start);
-  print_board(start);
+  simulator_version_1(moves);
 }
