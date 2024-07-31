@@ -1,3 +1,6 @@
+#ifndef __SIMULATOR_H
+#define __SIMULATOR_H
+
 #include <cstdint>
 #include <vector>
 #include <iostream>
@@ -314,12 +317,14 @@ uint64_t simulator_version_2 (std::vector<int> &sequence_of_moves) {
   return new_board;
 }
 
-signed main() {
-  std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
-  std::vector<int> moves;
-  for (int i=0;i<20;i++) {
-    moves.push_back(std::uniform_int_distribution<int>(0, 3)(rng));
-  }
+// signed main() {
+//   std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
+//   std::vector<int> moves;
+//   for (int i=0;i<20;i++) {
+//     moves.push_back(std::uniform_int_distribution<int>(0, 3)(rng));
+//   }
 
-  simulator_version_1(moves);
-}
+//   simulator_version_1(moves);
+// }
+
+#endif
