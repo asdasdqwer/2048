@@ -44,7 +44,7 @@ std::vector<int> crossover(std::vector<int> &chromosome1, std::vector<int> &chro
 }
 
 std::vector<int> mutation(std::vector<int> chromosome, std::mt19937 &rng) {
-    int number_of_changes = std::uniform_int_distribution<int>(1, 3)(rng);
+    int number_of_changes = std::uniform_int_distribution<int>(1, 10)(rng);
     for (int i=0;i<number_of_changes;i++) {
         chromosome[std::uniform_int_distribution<int>(0, LENGTH_OF_SEQUENCE-1)(rng)] = std::uniform_int_distribution<int>(0, 3)(rng);
     }
